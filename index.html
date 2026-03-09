@@ -1,0 +1,959 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>London Borough Parking Data Visualization</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.css" rel="stylesheet">
+    <style>
+    body { margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        #menu-container {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+            background: #fff;
+            padding: 8px;
+            border: 2px solid #2c95b5; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            max-width: 280px;
+            max-height: 90vh; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column;
+            gap: 8px; 
+        }
+        #borough-list-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: #fff;
+            padding: 12px; 
+            border: 2px solid #2c95b5; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            width: 220px;
+            max-height: 50vh; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column;
+            gap: 10px; 
+        }
+
+        #borough-list-header {
+            font-weight: 700;
+            font-size: 14px;
+            color: #1f2937;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #eee;
+        }
+        #select-all-item {
+            font-weight: 700;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            margin-bottom: 5px;
+        }
+
+        #borough-checklist {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .borough-item {
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+            color: #333;
+            cursor: pointer;
+        }
+        .borough-item:hover {
+            background-color: #f9fafb;
+        }
+        .borough-item input {
+            margin-right: 10px;
+            cursor: pointer;
+            accent-color: #2c95b5;
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0; 
+        }
+        .borough-item label {
+            white-space: nowrap; 
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .control-group {
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .control-group:last-of-type { 
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+            font-size: 12px;
+            color: #1f2937;
+        }
+        .control-group .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .control-group button {
+            background-color: #f3f4f6;
+            border: 1px solid #d1d5db;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+         .control-group button:hover {
+            background-color: #DDDFE3;
+            border-color: #9ca3af;
+         }
+        .control-group button.active {
+            background-color: #005c84; 
+            color: #fff;
+            border-color: #059669;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        #legend-container, #band-cost-container {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            display: none; 
+            margin-top: 10px;
+        }
+        
+        #legend-container h3, #band-cost-container h3 {
+            background-color: #2c95b5;
+            color: white;
+            padding: 5px;
+            margin: 0;
+            font-size: 12px;
+        }
+        
+        .legend-list-standard {
+            width: 100%;
+            font-size: 12px;
+        }
+        .legend-list-standard .legend-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .legend-list-standard .legend-row:last-child {
+            border-bottom: none;
+        }
+        .legend-color-box {
+            display: inline-block; 
+            width: 12px; 
+            height: 12px; 
+            margin-right: 8px; 
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        .legend-label-group {
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Band Cost Table Specifics */
+        #band-cost-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+        #band-cost-table th, #band-cost-table td {
+            padding: 5px 7px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        #band-cost-table th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+            color: #333;
+        }
+        #band-cost-table tr:last-child td {
+            border-bottom: none;
+        }
+        .mapboxgl-popup-content .data-missing {
+            color: #ef4444; 
+            font-weight: 700;
+        }
+
+#pcl-logo {
+    position: absolute;
+    bottom: 34px;
+    left: 10px;
+    width: 140px;
+    z-index: 20;
+}
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="borough-list-container">
+    <div id="borough-list-header">
+        <span>Borough Filter</span>
+    </div>
+  
+    <div class="borough-item" id="select-all-item">
+        <input type="checkbox" id="chk-select-all" checked>
+        <label for="chk-select-all">Select All</label>
+    </div>
+
+    <div id="borough-checklist">
+    </div>
+</div>
+
+<div id="menu-container">
+    <div class="control-group">
+        <label>Data to Visualize:</label>
+        <div id="data-toggles" class="button-group">
+            <!-- General Borough Metrics -->
+            <button id="toggle-imd" data-layer-id="imd-score-choropleth" data-band-type="none" class="active">IMD Score</button>
+            <button id="toggle-ptal-score" data-layer-id="ptal-score-choropleth" data-band-type="none">PTAL Score</button>
+            
+            <!-- Separator for Parking Bands -->
+            <div style="width: 100%; border-top: 1px solid #e5e7eb; margin: 6px 0;"></div>
+
+            <!-- Parking Band Metrics -->
+            <button id="toggle-resident-band" data-layer-id="resident-band-choropleth" data-band-type="Resident">Resident Band</button>
+            <button id="toggle-visitor-band" data-layer-id="visitor-band-choropleth" data-band-type="Visitor">Visitor Band</button>
+            <button id="toggle-diesel-band" data-layer-id="diesel-band-choropleth" data-band-type="Diesel">Diesel Band</button>
+            <button id="toggle-business-band" data-layer-id="business-band-choropleth" data-band-type="Business">Business Band</button>
+        </div>
+    </div>
+    <div class="control-group">
+        <label>Inner/Outer:</label>
+        <div id="filter-toggles" class="button-group">
+            <button id="filter-all" data-filter="all" class="active">All</button>
+            <button id="filter-Inner" data-filter="Inner">Inner</button>
+            <button id="filter-Outer" data-filter="Outer">Outer</button>
+        </div>
+    </div>
+    
+    <div class="control-group">
+        <label>Emission Based:</label>
+        <div id="emission-filter-toggles" class="button-group">
+            <button id="filter-emission-yes" data-emission-filter="Yes">Emission Based</button>
+            <button id="filter-emission-no" data-emission-filter="No">Non-Emission</button>
+        </div>
+    </div>
+    
+    <div id="legend-container">
+    </div>
+    <div id="band-cost-container">
+    </div>
+</div>
+  <img id="pcl-logo" src="https://gist.githubusercontent.com/OzudPCL/733ccaccce2f4eab2029c5aea564d58f/raw/8923a438d872516e70494bcc03e1dc277650c631/pcl.svg" alt="PCL Logo">
+  
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoicHJvamVjdGNlbnRyZSIsImEiOiJja3o4OW9zYmowM3YwMm9tcWF0MTRtc3VyIn0.ns_jCyc8s6t6CS1w8SK6QQ';
+    
+    const INITIAL_CENTER = [0.103525, 51.514594]; 
+    const INITIAL_ZOOM = 8.8; 
+    
+    // Mapbox Source details
+    const VECTOR_SOURCE_ID = 'mapbox-london-boroughs';
+    const VECTOR_URL = 'mapbox://projectcentre.031r60s3';
+    const VECTOR_LAYER_NAME = 'London_Borough_Boundaries_v2-7lf95n';
+    
+    const BOROUGH_NAME_PROPERTY = 'name'; 
+    const CHOROPLETH_LAYERS = {
+        'imd-score-choropleth': 'IMD_Average_score',
+        'ptal-score-choropleth': 'PTAL', 
+        'resident-band-choropleth': 'Resident_band',
+        'visitor-band-choropleth': 'Visitor_band',
+        'diesel-band-choropleth': 'Diesel_band',
+        'business-band-choropleth': 'Business_band'
+    };
+    const BOROUGH_TYPE_KEY = 'Inside_Outside';
+    const IMD_SCORE_LAYER = 'imd-score-choropleth';
+    const PTAL_SCORE_LAYER = 'ptal-score-choropleth';
+    const PARKING_BAND_LAYERS = [
+        'resident-band-choropleth', 
+        'visitor-band-choropleth', 
+        'diesel-band-choropleth', 
+        'business-band-choropleth'
+    ];
+
+
+    // --- Data Hardcoded ---
+    const boroughDataLookup = {
+        "Hammersmith and Fulham London Boro": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "21.92", "PTAL": "4", "PTAL_level": "17.98", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – £477.06", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Unknown", "Visitor_band_cost": "n/a" },
+        "Lambeth London Boro": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "25.26", "PTAL": "5", "PTAL_level": "20.15", "Resident_band": "Band 7", "Resident_band_cost": "£708.09 – £823.60", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – £12.57" },
+        "Harrow": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "14.81703", "PTAL": "2", "PTAL_level": "7.360613", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Band 1", "Visitor_band_cost": "£1.60 – 5.26" },
+        "Sutton London Boro": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "13.77723", "PTAL": "2", "PTAL_level": "6.270242", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 1", "Diesel_band_cost": "£12.75 – 53.79", "Business_band": "Band 1", "Business_band_cost": "£52.00 – 360.75", "Visitor_band": "Out of Range", "Visitor_band_cost": "n/a" },
+        "Hillingdon London Boro": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "17.46548", "PTAL": "1", "PTAL_level": "4.317269", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Out of Range", "Visitor_band_cost": "n/a" },
+        "Havering": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "16.39055", "PTAL": "1", "PTAL_level": "4.424283", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
+        "Brent": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "25.09581", "PTAL": "3", "PTAL_level": "11.25365", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 1", "Visitor_band_cost": "£1.60 – 5.26" },
+        "City of Westminster": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "20.09178", "PTAL": "6", "PTAL_level": "31.95635", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Unknown", "Visitor_band_cost": "n/a" },
+        "Enfield": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "24.96411", "PTAL": "2", "PTAL_level": "6.283141", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
+        "Haringey": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "26.9533", "PTAL": "3", "PTAL_level": "13.3692", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
+        "Kensington and Chelsea London Boro": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "22.27008", "PTAL": "5", "PTAL_level": "22.62542", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Band 4", "Visitor_band_cost": "£12.57 – £16.23" },
+        "Ealing": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "22.51662", "PTAL": "2", "PTAL_level": "9.350459", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
+        "Hounslow London Boro": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "21.2356", "PTAL": "2", "PTAL_level": "7.492888", "Resident_band": "Band 3", "Resident_band_cost": "£246.03 – 361.54", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
+        "Redbridge": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "21.0", "PTAL": "2", "PTAL_level": "8.0", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
+        "Tower Hamlets": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "30.0", "PTAL": "6", "PTAL_level": "25.0", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 4", "Diesel_band_cost": "£135.86 – 176.90", "Business_band": "Band 4", "Business_band_cost": "£978.25 – 1287.00", "Visitor_band": "Band 4", "Visitor_band_cost": "£12.57 – 16.23" },
+        "Islington": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "27.0", "PTAL": "5", "PTAL_level": "20.0", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
+        "Hackney": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "29.0", "PTAL": "4", "PTAL_level": "15.0", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
+        "Wandsworth London Boro": { "Inside_Outside": "Inner", "emission_based": "No", "IMD_Average_score": "16.50158", "PTAL": "3", "PTAL_level": "13.45488", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
+        "Camden": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "25.2064", "PTAL": "5", "PTAL_level": "24.909408", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 4", "Diesel_band_cost": "£135.86 – 176.90", "Business_band": "Band 4", "Business_band_cost": "£978.25 – 1287.00", "Visitor_band": "Band 4", "Visitor_band_cost": "£12.57 – 16.23" },
+        "Southwark": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "25.28469", "PTAL": "5", "PTAL_level": "22.12614", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
+        "Greenwich": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "26.9533", "PTAL": "3", "PTAL_level": "6.36692", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
+        "Newham": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "29.51243", "PTAL": "3", "PTAL_level": "14.58995", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 4", "Diesel_band_cost": "£135.86 – 176.90", "Business_band": "Band 4", "Business_band_cost": "£978.25 – £1287.00", "Visitor_band": "Band 4", "Visitor_band_cost": "£12.57 – 16.23" },
+        "Waltham Forest": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "25.00373", "PTAL": "3", "PTAL_level": "9.046299", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
+        "Lewisham": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "26.54361", "PTAL": "3", "PTAL_level": "12.08809", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
+        "Croydon": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "21.78941", "PTAL": "2", "PTAL_level": "8.327508", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
+        "Bromley": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "14.0419", "PTAL": "2", "PTAL_level": "5.660384", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
+        "Merton London Boro": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "14.15833", "PTAL": "2", "PTAL_level": "9.796625", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
+        "Kingston upon Thames London Boro": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "11.47536", "PTAL": "2", "PTAL_level": "6.482902", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
+        "Richmond upon Thames London Boro": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "9.482827", "PTAL": "2", "PTAL_level": "6.438601", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
+        "Bexley": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "16.47307", "PTAL": "1", "PTAL_level": "4.993359", "Resident_band": "Band 3", "Resident_band_cost": "£246.03 – 361.54", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
+        "Barnet": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "15.82111", "PTAL": "2", "PTAL_level": "8.004541", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
+        "Barking and Dagenham": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "32.76825", "PTAL": "1", "PTAL_level": "8.534881", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
+        "City of London": { "Inside_Outside": "Inner", "emission_based": "No", "IMD_Average_score": "15.0", "PTAL": "6", "PTAL_level": "32.0", "Resident_band": "Unknown", "Resident_band_cost": "n/a", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Unknown", "Visitor_band_cost": "n/a" }
+    };
+    
+    const bandCostBreakdown = {
+        'Resident': {
+            'Band 1': '£15.00 – £130.51',
+            'Band 2': '£130.51 – £246.03',
+            'Band 3': '£246.03 – £361.54',
+            'Band 4': '£361.54 – £477.06',
+            'Band 5': '£477.06 – £592.57',
+            'Band 6': '£592.57 – £708.09',
+            'Band 7': '£708.09 – £823.60',
+        },
+        'Diesel': {
+            'Band 1': '£12.75 – £53.79',
+            'Band 2': '£53.79 – £94.82',
+            'Band 3': '£94.82 – £135.86',
+            'Band 4': '£135.86 – £176.90',
+            'Band 5': '£176.90 – £217.93',
+            'Band 6': '£217.93 – £258.97',
+            'Band 7': '£258.97 – £300.00',
+        },
+        'Business': {
+            'Band 1': '£52.00 – £360.75',
+            'Band 2': '£360.75 – £669.50',
+            'Band 3': '£669.50 – £978.25',
+            'Band 4': '£978.25 – £1287.00',
+            'Band 5': '£1287.00 – £1595.75',
+            'Band 6': '£1595.75 – £1904.50',
+            'Band 7': '£1904.50 – £2213.25',
+        },
+        'Visitor': {
+            'Band 1': '£1.60 – £5.26',
+            'Band 2': '£5.26 – £8.91',
+            'Band 3': '£8.91 – £12.57',
+            'Band 4': '£12.57 – £16.23',
+            'Band 5': '£16.23 – £19.88',
+            'Band 6': '£19.88 – £23.54',
+            'Band 7': '£23.54 – £27.20',
+        }
+    };
+    const IMD_LEGEND_DATA = [
+        { label: '≤ 15.0 (Lowest Deprivation / Best)', color: '#1a9850' },
+        { label: '15.0 – 20.0', color: '#a6d96a' },
+        { label: '20.0 – 25.0', color: '#fdae61' },
+        { label: '> 25.0 (Highest Deprivation / Worst)', color: '#d73027' }
+    ];
+    const calculateIMDColor = (score) => {
+        const numericScore = parseFloat(score);
+        if (typeof numericScore !== 'number' || isNaN(numericScore)) return '#000000'; 
+        if (numericScore <= 15.0) return IMD_LEGEND_DATA[0].color; 
+        if (numericScore <= 20.0) return IMD_LEGEND_DATA[1].color;
+        if (numericScore <= 25.0) return IMD_LEGEND_DATA[2].color;
+        return IMD_LEGEND_DATA[3].color; 
+    };
+    
+    const PTAL_SCORE_PALETTE = {
+        '1': '#d73027', 
+        '2': '#fc8d59', 
+        '3': '#fee08b', 
+        '4': '#d9ef8b', 
+        '5': '#91cf60', 
+        '6': '#1a9850', 
+        'Missing': '#000000', 
+    };
+    const PTAL_SCORE_LEGEND_DATA = [
+        { label: '6 (Highest Access / Best)', color: PTAL_SCORE_PALETTE['6'] },
+        { label: '5', color: PTAL_SCORE_PALETTE['5'] },
+        { label: '4', color: PTAL_SCORE_PALETTE['4'] },
+        { label: '3', color: PTAL_SCORE_PALETTE['3'] },
+        { label: '2', color: PTAL_SCORE_PALETTE['2'] },
+        { label: '1 (Lowest Access / Worst)', color: PTAL_SCORE_PALETTE['1'] }
+    ].reverse(); // Reverse for display (1 at top, 6 at bottom)
+
+    const BAND_COLOR_PALETTE = {
+        'Band 1': '#f2f0f7', // Lightest
+        'Band 2': '#ddd3e9',
+        'Band 3': '#c5a9d9',
+        'Band 4': '#ad7ec8',
+        'Band 5': '#9452b8',
+        'Band 6': '#7e32a2',
+        'Band 7': '#63008a', // Darkest 
+        'Unknown': '#6b7280',     
+        'Out of Range': '#6b7280', 
+        'n/a': '#000000',           
+        'Missing': '#000000',       
+    };
+    function getPrecalculatedColorExpression(metricKey, colorCalculatorFn) {
+        const expression = ['match', ['get', BOROUGH_NAME_PROPERTY]];
+        
+        for (const name in boroughDataLookup) {
+            let mapName = name;
+            
+            const value = boroughDataLookup[name][metricKey];
+            const color = colorCalculatorFn(value);
+            expression.push(name, color);
+
+            if (mapName.includes(' London Boro')) {
+                const shortName = mapName.replace(' London Boro', '');
+                expression.push(shortName, color);
+            }
+        }
+        
+        expression.push('#cccccc'); // Default fallback for unlisted boroughs
+        return expression;
+    }
+    
+    function getCategoricalColorExpression(metricKey, colorPalette) {
+        const expression = ['match', ['get', BOROUGH_NAME_PROPERTY]];
+        
+        for (const name in boroughDataLookup) {
+            const value = boroughDataLookup[name][metricKey];
+            const color = colorPalette[String(value).trim()] || colorPalette['Missing']; 
+
+            expression.push(name, color);
+
+            if (name.includes(' London Boro')) {
+                const shortName = name.replace(' London Boro', '');
+                expression.push(shortName, color);
+            }
+        }
+        
+        expression.push('#cccccc'); 
+        return expression;
+    }
+
+    const BASE_STYLES = {
+        'imd-score-choropleth': getPrecalculatedColorExpression('IMD_Average_score', calculateIMDColor),
+        'ptal-score-choropleth': getCategoricalColorExpression('PTAL', PTAL_SCORE_PALETTE), 
+        'resident-band-choropleth': getCategoricalColorExpression('Resident_band', BAND_COLOR_PALETTE),
+        'visitor-band-choropleth': getCategoricalColorExpression('Visitor_band', BAND_COLOR_PALETTE),
+        'diesel-band-choropleth': getCategoricalColorExpression('Diesel_band', BAND_COLOR_PALETTE),
+        'business-band-choropleth': getCategoricalColorExpression('Business_band', BAND_COLOR_PALETTE),
+    };
+
+    // --- Map Initialization ---
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/light-v11',
+        center: INITIAL_CENTER,
+        zoom: INITIAL_ZOOM
+    });
+    let activeLayerId = IMD_SCORE_LAYER; 
+    let activeFilter = 'all'; 
+    let activeEmissionFilter = 'none';
+    let activeBandType = 'none'; 
+    function getBoroughData(boroughName) {
+        const data = boroughDataLookup[boroughName];
+        if (data) return data;
+
+        const longName = boroughName + ' London Boro';
+        if (boroughDataLookup[longName]) return boroughDataLookup[longName];
+
+        if (boroughName.includes(' London Boro')) {
+             const shortName = boroughName.replace(' London Boro', '');
+             if (boroughDataLookup[shortName]) return boroughDataLookup[shortName];
+        }
+
+        if (boroughName === 'Westminster' && boroughDataLookup['City of Westminster']) {
+            return boroughDataLookup['City of Westminster'];
+        }
+        
+        return null; // Data not found
+    }
+
+    map.on('load', () => {
+        map.addSource(VECTOR_SOURCE_ID, {
+            'type': 'vector',
+            'url': VECTOR_URL
+        });
+        
+        for (const layerId in CHOROPLETH_LAYERS) {
+            map.addLayer({
+                'id': layerId,
+                'type': 'fill',
+                'source': VECTOR_SOURCE_ID,
+                'source-layer': VECTOR_LAYER_NAME, 
+                'layout': {
+                    'visibility': (layerId === activeLayerId) ? 'visible' : 'none'
+                },
+                'paint': {
+                    'fill-color': BASE_STYLES[layerId] || '#cccccc', 
+                    'fill-opacity': 0.75,
+                    'fill-outline-color': '#333', 
+                }
+            });
+        }
+        
+        initBoroughList();
+        updateBoroughFilter('all');
+
+        map.on('click', activeLayerId, handleMapClick);
+
+        map.on('mouseenter', activeLayerId, handleMouseEnter);
+
+        map.on('mouseleave', activeLayerId, handleMouseLeave);
+ 
+        updateLegend(activeLayerId); 
+    });
+
+    function initBoroughList() {
+        const listContainer = document.getElementById('borough-checklist');
+        const selectAllCheckbox = document.getElementById('chk-select-all');
+        const sortedBoroughs = Object.keys(boroughDataLookup).sort();
+
+        // 1. Set up Select All listener
+        selectAllCheckbox.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            const checkboxes = document.querySelectorAll('#borough-checklist input[type="checkbox"]');
+            
+            checkboxes.forEach(chk => {
+                chk.checked = isChecked;
+            });
+            
+            // Reset all filter buttons
+            document.querySelectorAll('#filter-toggles button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('filter-all').classList.toggle('active', isChecked);
+            
+            document.querySelectorAll('#emission-filter-toggles button').forEach(btn => btn.classList.remove('active'));
+
+            applyMapFilterFromCheckboxes();
+        });
+        sortedBoroughs.forEach(name => {
+            let displayName = name.replace(' London Boro', '');
+            if (displayName === 'City of Westminster') displayName = 'Westminster';
+            
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'borough-item';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `chk-${name.replace(/\s+/g, '-')}`; // Safe ID
+            checkbox.value = name;
+            checkbox.checked = true; // Default Select All
+            
+            // Add change listener to individual checkboxes
+            checkbox.addEventListener('change', () => {
+                applyMapFilterFromCheckboxes();
+                const allBoroughCheckboxes = document.querySelectorAll('#borough-checklist input[type="checkbox"]');
+                const allChecked = Array.from(allBoroughCheckboxes).every(c => c.checked);
+                
+                selectAllCheckbox.checked = allChecked;
+                
+                // Reset filter buttons if not all checked
+                if (!allChecked) {
+                    document.querySelectorAll('#filter-toggles button').forEach(btn => btn.classList.remove('active'));
+                    document.querySelectorAll('#emission-filter-toggles button').forEach(btn => btn.classList.remove('active'));
+                } else {
+                    document.getElementById('filter-all').classList.add('active');
+                }
+            });
+
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            label.innerText = displayName;
+            label.style.cursor = 'pointer';
+
+            itemDiv.appendChild(checkbox);
+            itemDiv.appendChild(label);
+            listContainer.appendChild(itemDiv);
+        });
+    }
+    function applyMapFilterFromCheckboxes() {
+        const boroughCheckboxes = document.querySelectorAll('#borough-checklist input[type="checkbox"]');
+        let matchingNames = [];
+        
+        boroughCheckboxes.forEach(chk => {
+            if (chk.checked) {
+                const name = chk.value;
+                matchingNames.push(name);
+                if (name.includes(' London Boro')) {
+                    matchingNames.push(name.replace(' London Boro', ''));
+                }
+            }
+        });
+
+        if (matchingNames.includes('City of Westminster')) {
+            matchingNames.push('Westminster');
+        }
+
+        for (const layerId in CHOROPLETH_LAYERS) {
+            
+            if (!map.getLayer(layerId)) continue;
+            const baseStyle = BASE_STYLES[layerId];
+
+            const filterColorExpression = [
+                'case',
+                ['in', ['get', BOROUGH_NAME_PROPERTY], ['literal', matchingNames]], 
+                baseStyle,         
+                '#cccccc' 
+            ];
+            
+            map.setPaintProperty(layerId, 'fill-color', filterColorExpression);
+        }
+    }
+    
+    function updateBoroughFilter(filterType) {
+        activeFilter = filterType; 
+        
+        const allCheckboxes = document.querySelectorAll('#borough-checklist input[type="checkbox"]');
+        const selectAllCheckbox = document.getElementById('chk-select-all');
+
+        allCheckboxes.forEach(chk => {
+            const name = chk.value;
+            const data = boroughDataLookup[name];
+            
+            if (filterType === 'all') {
+                chk.checked = true;
+            } else if (filterType === 'Inner') {
+                chk.checked = (data.Inside_Outside === 'Inner');
+            } else if (filterType === 'Outer') {
+                chk.checked = (data.Inside_Outside === 'Outer');
+            }
+        });
+        
+        // Update Select All checkbox
+        const allChecked = Array.from(allCheckboxes).every(chk => chk.checked);
+        selectAllCheckbox.checked = allChecked;
+        
+        applyMapFilterFromCheckboxes();
+        
+        // Update button active states
+        document.querySelectorAll('#filter-toggles button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`filter-${activeFilter}`)?.classList.add('active');
+        
+        // Reset emission filter when changing Inner/Outer filter
+        if (filterType !== 'all') {
+            activeEmissionFilter = 'none';
+            document.querySelectorAll('#emission-filter-toggles button').forEach(btn => btn.classList.remove('active'));
+        }
+    }
+    
+    function updateEmissionFilter(emissionFilterType) {
+        activeEmissionFilter = emissionFilterType;
+        
+        const allCheckboxes = document.querySelectorAll('#borough-checklist input[type="checkbox"]');
+        const selectAllCheckbox = document.getElementById('chk-select-all');
+
+        allCheckboxes.forEach(chk => {
+            const name = chk.value;
+            const data = boroughDataLookup[name];
+            
+            if (emissionFilterType === 'Yes') {
+                chk.checked = (data.emission_based === 'Yes');
+            } else if (emissionFilterType === 'No') {
+                chk.checked = (data.emission_based === 'No');
+            }
+        });
+        
+        // Update Select All checkbox
+        const allChecked = Array.from(allCheckboxes).every(chk => chk.checked);
+        selectAllCheckbox.checked = allChecked;
+        
+        applyMapFilterFromCheckboxes();
+        
+        // Update button active states
+        document.querySelectorAll('#emission-filter-toggles button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`filter-emission-${emissionFilterType}`)?.classList.add('active');
+        
+        // Reset Inner/Outer filter to 'all' when changing emission filter
+        activeFilter = 'all';
+        document.querySelectorAll('#filter-toggles button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('filter-all').classList.add('active');
+    }
+
+
+    function updateStandardLegend(layerId) {
+        const legendContainer = document.getElementById('legend-container');
+        const bandCostContainer = document.getElementById('band-cost-container');
+        
+        // Hide cost table
+        bandCostContainer.style.display = 'none';
+
+        let title = '';
+        let legendData = [];
+
+        if (layerId === IMD_SCORE_LAYER) {
+            title = 'IMD Average Score (Deprivation)';
+            legendData = IMD_LEGEND_DATA;
+        } else if (layerId === PTAL_SCORE_LAYER) {
+            title = 'PTAL Score (1-6)';
+            legendData = PTAL_SCORE_LEGEND_DATA;
+        } else {
+            legendContainer.style.display = 'none';
+            return;
+        }
+
+        let html = `
+            <h3>${title}</h3>
+            <div class="legend-list-standard">
+        `;
+
+        legendData.forEach(item => {
+            html += `
+                <div class="legend-row">
+                    <span class="legend-label-group">
+                        <span class="legend-color-box" style="background-color: ${item.color}; border: 1px solid ${item.color === '#f2f0f7' ? '#ccc' : item.color};"></span>
+                        ${item.label}
+                    </span>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        legendContainer.innerHTML = html;
+        legendContainer.style.display = 'block';
+    }
+    function updateBandCostTable(bandType) {
+        const costContainer = document.getElementById('band-cost-container');
+        const legendContainer = document.getElementById('legend-container');
+        
+        legendContainer.style.display = 'none';
+
+        if (bandType === 'none' || !bandCostBreakdown[bandType]) {
+            costContainer.style.display = 'none';
+            return;
+        }
+        
+        const costData = bandCostBreakdown[bandType];
+        
+        let costRangeTitle = '(Annual)';
+        if (bandType === 'Visitor') {
+            costRangeTitle = '(Daily)'; 
+        }
+
+        let html = `
+            <h3>${bandType} Permit Cost Key</h3>
+            
+            <!-- FOOTNOTE POSITIONED ABOVE THE TABLE -->
+            <p style="font-size: 10px; margin: 5px 10px 10px; color: #333;">
+                *Unknown / Out of Range are shown in dark grey.
+            </p>
+
+            <table id="band-cost-table">
+                <thead>
+                    <tr>
+                        <th>Band / Status</th>
+                        <th>Cost Range ${costRangeTitle}</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        // 1. Add Band 1 to Band 7
+        for (let i = 1; i <= 7; i++) {
+            const bandName = `Band ${i}`;
+            const costRange = costData[bandName] || 'N/A';
+            
+            const color = BAND_COLOR_PALETTE[bandName] || '#cccccc'; 
+            const borderColor = bandName === 'Band 1' ? '#aaa' : color;
+            
+            html += `
+                <tr>
+                    <td style="display: flex; align-items: center;">
+                        <span class="legend-color-box" style="background-color: ${color}; border: 1px solid ${borderColor};"></span>
+                        ${bandName}
+                    </td>
+                    <td>${costRange}</td>
+                </tr>
+            `;
+        }
+        const specialStatuses = [
+            { label: 'Unknown', key: 'Unknown', cost: 'Not Applicable' },
+            { label: 'Out of Range', key: 'Out of Range', cost: 'Not Applicable' },
+            { label: 'N/A / Missing Data', key: 'n/a', cost: 'Data Unavailable' }
+        ];
+        
+        // The common dark grey color for Unknown/Out of Range
+        const darkGrey = BAND_COLOR_PALETTE['Unknown']; 
+
+        specialStatuses.forEach(status => {
+            let color = BAND_COLOR_PALETTE[status.key];
+            
+            if (status.key === 'Unknown' || status.key === 'Out of Range') {
+                color = darkGrey; 
+            } else if (status.key === 'n/a') {
+                color = BAND_COLOR_PALETTE['Missing'];
+            }
+            
+            const borderColor = (color === BAND_COLOR_PALETTE['Band 1'] || color === BAND_COLOR_PALETTE['Missing']) ? '#aaa' : color;
+            
+            html += `
+                <tr style="font-style: italic;"> 
+                    <td style="display: flex; align-items: center;">
+                        <span class="legend-color-box" style="background-color: ${color}; border: 1px solid ${borderColor};"></span>
+                        ${status.label}
+                    </td>
+                    <td>${status.cost}</td>
+                </tr>
+            `;
+        });
+
+
+        html += `
+                </tbody>
+            </table>
+        `;
+        // --- END HTML Generation ---
+
+        costContainer.innerHTML = html;
+        costContainer.style.display = 'block';
+    }
+    
+    // Consolidated Legend Update Handler
+    function updateLegend(layerId, bandType = 'none') {
+        if (PARKING_BAND_LAYERS.includes(layerId)) {
+            // It's a parking band, show cost table
+            const currentBandType = document.querySelector(`#data-toggles button[data-layer-id="${layerId}"]`).dataset.bandType;
+            updateBandCostTable(currentBandType);
+        } else {
+            updateStandardLegend(layerId);
+        }
+    }
+
+    function switchChoropleth(newLayerId, newBandType) {
+        if (!map.getLayer(newLayerId) || newLayerId === activeLayerId) return;
+
+        // Clean up events from old layer
+        map.off('click', activeLayerId, handleMapClick); 
+        map.off('mouseenter', activeLayerId, handleMouseEnter);
+        map.off('mouseleave', activeLayerId, handleMouseLeave);
+
+        // Hide old layer
+        map.setLayoutProperty(activeLayerId, 'visibility', 'none');
+
+        // Show new layer 
+        map.setLayoutProperty(newLayerId, 'visibility', 'visible');
+        
+        activeLayerId = newLayerId;
+        
+        // --- Dynamic Legend Update ---
+        updateLegend(activeLayerId, newBandType);
+
+        // Re-bind mouse events to the new layer
+        map.on('click', activeLayerId, handleMapClick);
+        map.on('mouseenter', activeLayerId, handleMouseEnter);
+        map.on('mouseleave', activeLayerId, handleMouseLeave);
+
+        applyMapFilterFromCheckboxes();
+
+        // Update button active state
+        document.querySelector(`#data-toggles button.active`).classList.remove('active');
+        document.querySelector(`#data-toggles button[data-layer-id="${newLayerId}"]`).classList.add('active');
+    }
+
+    function handleMouseEnter() {
+         map.getCanvas().style.cursor = 'pointer';
+    }
+    function handleMouseLeave() {
+         map.getCanvas().style.cursor = '';
+    }
+    function handleMapClick(e) {
+         if (!e.features || !e.features.length) return;
+         
+         const feature = e.features[0];
+         const boroughName = feature.properties[BOROUGH_NAME_PROPERTY]; 
+         const data = getBoroughData(boroughName); 
+        
+        let popupContent = `<strong>Borough: ${boroughName}</strong><br>`;
+
+        if (!data) {
+             popupContent += `<hr style="margin: 4px 0;">`;
+             popupContent += `<div class="data-missing">
+                 Data not found for this borough in the current list. 
+                 <br>Map Name: <code>${boroughName}</code>
+             </div>`;
+        } else {
+            const formatValue = (key) => {
+                const value = data[key];
+                if (value === undefined || value === null || (typeof value === 'string' && value.toLowerCase().trim() === 'n/a') || value.trim() === 'Unknown' || value.trim() === 'Out of Range') {
+                    return `<span class="data-missing">${value || 'N/A'}</span>`;
+                }
+                return `<strong>${value}</strong>`;
+            };
+
+            popupContent += `Type: ${data.Inside_Outside}<br>`;
+            popupContent += `Emission Based: ${data.emission_based}<br>`;
+            popupContent += `<hr style="margin: 4px 0;">`;
+            
+            // Visualization data
+            popupContent += `IMD Score: ${formatValue('IMD_Average_score')}<br>`;
+            popupContent += `PTAL Score: ${formatValue('PTAL')}<br>`;
+            popupContent += `PTAL Level: ${formatValue('PTAL_level')}<br>`; // Data kept in popup
+            popupContent += `Resident Band: ${formatValue('Resident_band')}<br>`;
+            popupContent += `Visitor Band: ${formatValue('Visitor_band')}<br>`;
+            popupContent += `Diesel Band: ${formatValue('Diesel_band')}<br>`;
+            popupContent += `Business Band: ${formatValue('Business_band')}<br>`;
+            popupContent += `<hr style="margin: 4px 0;">`;
+            popupContent += `<strong>Parking Costs (Bands)</strong><br>`;
+            
+            popupContent += `Resident Cost (Annual): ${formatValue('Resident_band_cost')}<br>`;
+            popupContent += `Diesel Cost (Annual): ${formatValue('Diesel_band_cost')}<br>`;
+            popupContent += `Business Cost (Annual): ${formatValue('Business_band_cost')}<br>`;
+            // Visitor cost is daily
+            popupContent += `Visitor Cost (Daily): ${formatValue('Visitor_band_cost')}`;
+        }
+
+
+        new mapboxgl.Popup()
+            .setLngLat(e.lngLat)
+            .setHTML(popupContent)
+            .addTo(map);
+    }
+    document.getElementById('data-toggles').addEventListener('click', (e) => {
+        const targetButton = e.target.closest('button');
+        if (targetButton && targetButton.dataset.layerId) {
+            const bandType = targetButton.dataset.bandType;
+            switchChoropleth(targetButton.dataset.layerId, bandType);
+        }
+    });
+
+    document.getElementById('filter-toggles').addEventListener('click', (e) => {
+         const targetButton = e.target.closest('button');
+        if (targetButton && targetButton.dataset.filter) {
+            updateBoroughFilter(targetButton.dataset.filter);
+        }
+    });
+    
+    document.getElementById('emission-filter-toggles').addEventListener('click', (e) => {
+        const targetButton = e.target.closest('button');
+        if (targetButton && targetButton.dataset.emissionFilter) {
+            updateEmissionFilter(targetButton.dataset.emissionFilter);
+        }
+    });
+
+</script>
+
+</body>
+</html>
