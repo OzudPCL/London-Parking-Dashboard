@@ -14,16 +14,16 @@
             right: 10px;
             z-index: 10;
             background: #fff;
-            padding: 8px;
+            padding: 4px;
             border: 2px solid #2c95b5; 
             border-radius: 10px; 
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            max-width: 280px;
-            max-height: 90vh; 
+            max-width: 290px;
+            max-height: 110vh; 
             overflow-y: auto; 
             display: flex; 
             flex-direction: column;
-            gap: 8px; 
+            gap: 2px; 
         }
         #borough-list-container {
             position: absolute;
@@ -140,18 +140,18 @@
             color: white;
             padding: 5px;
             margin: 0;
-            font-size: 12px;
+            font-size: 10px;
         }
         
         .legend-list-standard {
             width: 100%;
-            font-size: 12px;
+            font-size: 10px;
         }
         .legend-list-standard .legend-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 8px;
+            padding: 5px 8px;
             border-bottom: 1px solid #eee;
         }
         .legend-list-standard .legend-row:last-child {
@@ -237,6 +237,8 @@
             <button id="toggle-visitor-band" data-layer-id="visitor-band-choropleth" data-band-type="Visitor">Visitor Band</button>
             <button id="toggle-diesel-band" data-layer-id="diesel-band-choropleth" data-band-type="Diesel">Diesel Band</button>
             <button id="toggle-business-band" data-layer-id="business-band-choropleth" data-band-type="Business">Business Band</button>
+            <button id="toggle-ksi-band" data-layer-id="ksi-band-choropleth" data-band-type="KSI">KSI Band</button>
+                      <button id="toggle-multiplevehicle-band" data-layer-id="multiplevehicle-band-choropleth" data-band-type="Multiple Vehicle">Multiple Vehicle Band</button>
         </div>
     </div>
     <div class="control-group">
@@ -281,7 +283,9 @@
         'resident-band-choropleth': 'Resident_band',
         'visitor-band-choropleth': 'Visitor_band',
         'diesel-band-choropleth': 'Diesel_band',
-        'business-band-choropleth': 'Business_band'
+        'business-band-choropleth': 'Business_band',
+        'ksi-band-choropleth': 'KSI_band',
+        'multiplevehicle-band-choropleth': 'Multiplevehicle_band' 
     };
     const BOROUGH_TYPE_KEY = 'Inside_Outside';
     const IMD_SCORE_LAYER = 'imd-score-choropleth';
@@ -290,45 +294,47 @@
         'resident-band-choropleth', 
         'visitor-band-choropleth', 
         'diesel-band-choropleth', 
-        'business-band-choropleth'
+        'business-band-choropleth',
+        'ksi-band-choropleth',
+        'multiplevehicle-band-choropleth'
     ];
 
 
     // --- Data Hardcoded ---
     const boroughDataLookup = {
-        "Hammersmith and Fulham London Boro": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "21.92", "PTAL": "4", "PTAL_level": "17.98", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – £477.06", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Unknown", "Visitor_band_cost": "n/a" },
-        "Lambeth London Boro": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "25.26", "PTAL": "5", "PTAL_level": "20.15", "Resident_band": "Band 7", "Resident_band_cost": "£708.09 – £823.60", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – £12.57" },
-        "Harrow": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "14.81703", "PTAL": "2", "PTAL_level": "7.360613", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Band 1", "Visitor_band_cost": "£1.60 – 5.26" },
-        "Sutton London Boro": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "13.77723", "PTAL": "2", "PTAL_level": "6.270242", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 1", "Diesel_band_cost": "£12.75 – 53.79", "Business_band": "Band 1", "Business_band_cost": "£52.00 – 360.75", "Visitor_band": "Out of Range", "Visitor_band_cost": "n/a" },
-        "Hillingdon London Boro": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "17.46548", "PTAL": "1", "PTAL_level": "4.317269", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Out of Range", "Visitor_band_cost": "n/a" },
-        "Havering": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "16.39055", "PTAL": "1", "PTAL_level": "4.424283", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
-        "Brent": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "25.09581", "PTAL": "3", "PTAL_level": "11.25365", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 1", "Visitor_band_cost": "£1.60 – 5.26" },
-        "City of Westminster": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "20.09178", "PTAL": "6", "PTAL_level": "31.95635", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Unknown", "Visitor_band_cost": "n/a" },
-        "Enfield": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "24.96411", "PTAL": "2", "PTAL_level": "6.283141", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
-        "Haringey": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "26.9533", "PTAL": "3", "PTAL_level": "13.3692", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
-        "Kensington and Chelsea London Boro": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "22.27008", "PTAL": "5", "PTAL_level": "22.62542", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Band 4", "Visitor_band_cost": "£12.57 – £16.23" },
-        "Ealing": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "22.51662", "PTAL": "2", "PTAL_level": "9.350459", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
-        "Hounslow London Boro": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "21.2356", "PTAL": "2", "PTAL_level": "7.492888", "Resident_band": "Band 3", "Resident_band_cost": "£246.03 – 361.54", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
-        "Redbridge": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "21.0", "PTAL": "2", "PTAL_level": "8.0", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
-        "Tower Hamlets": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "30.0", "PTAL": "6", "PTAL_level": "25.0", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 4", "Diesel_band_cost": "£135.86 – 176.90", "Business_band": "Band 4", "Business_band_cost": "£978.25 – 1287.00", "Visitor_band": "Band 4", "Visitor_band_cost": "£12.57 – 16.23" },
-        "Islington": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "27.0", "PTAL": "5", "PTAL_level": "20.0", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
-        "Hackney": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "29.0", "PTAL": "4", "PTAL_level": "15.0", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
-        "Wandsworth London Boro": { "Inside_Outside": "Inner", "emission_based": "No", "IMD_Average_score": "16.50158", "PTAL": "3", "PTAL_level": "13.45488", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
-        "Camden": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "25.2064", "PTAL": "5", "PTAL_level": "24.909408", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 4", "Diesel_band_cost": "£135.86 – 176.90", "Business_band": "Band 4", "Business_band_cost": "£978.25 – 1287.00", "Visitor_band": "Band 4", "Visitor_band_cost": "£12.57 – 16.23" },
-        "Southwark": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "25.28469", "PTAL": "5", "PTAL_level": "22.12614", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
-        "Greenwich": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "26.9533", "PTAL": "3", "PTAL_level": "6.36692", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
-        "Newham": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "29.51243", "PTAL": "3", "PTAL_level": "14.58995", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 4", "Diesel_band_cost": "£135.86 – 176.90", "Business_band": "Band 4", "Business_band_cost": "£978.25 – £1287.00", "Visitor_band": "Band 4", "Visitor_band_cost": "£12.57 – 16.23" },
-        "Waltham Forest": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "25.00373", "PTAL": "3", "PTAL_level": "9.046299", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
-        "Lewisham": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "26.54361", "PTAL": "3", "PTAL_level": "12.08809", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57" },
-        "Croydon": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "21.78941", "PTAL": "2", "PTAL_level": "8.327508", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
-        "Bromley": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "14.0419", "PTAL": "2", "PTAL_level": "5.660384", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
-        "Merton London Boro": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "14.15833", "PTAL": "2", "PTAL_level": "9.796625", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
-        "Kingston upon Thames London Boro": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "11.47536", "PTAL": "2", "PTAL_level": "6.482902", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
-        "Richmond upon Thames London Boro": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "9.482827", "PTAL": "2", "PTAL_level": "6.438601", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
-        "Bexley": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "16.47307", "PTAL": "1", "PTAL_level": "4.993359", "Resident_band": "Band 3", "Resident_band_cost": "£246.03 – 361.54", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
-        "Barnet": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "15.82111", "PTAL": "2", "PTAL_level": "8.004541", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
-        "Barking and Dagenham": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "32.76825", "PTAL": "1", "PTAL_level": "8.534881", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91" },
-        "City of London": { "Inside_Outside": "Inner", "emission_based": "No", "IMD_Average_score": "15.0", "PTAL": "6", "PTAL_level": "32.0", "Resident_band": "Unknown", "Resident_band_cost": "n/a", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Unknown", "Visitor_band_cost": "n/a" }
+    "Hammersmith and Fulham London Boro": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "21.92", "PTAL": "4", "PTAL_level": "17.98", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – £477.06", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Unknown", "Visitor_band_cost": "n/a", "KSI_band": "Band 5","Multiplevehicle_band": "Band 1" },
+    "Lambeth London Boro": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "25.26", "PTAL": "5", "PTAL_level": "20.15", "Resident_band": "Band 7", "Resident_band_cost": "£708.09 – £823.60", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – £12.57", "KSI_band": "Band 2","Multiplevehicle_band": "Band 5" },
+    "Harrow": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "14.81703", "PTAL": "2", "PTAL_level": "7.360613", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Band 1", "Visitor_band_cost": "£1.60 – 5.26", "KSI_band": "Band 6","Multiplevehicle_band": "Band 2" },
+          "Richmond upon Thames London Boro": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "16.2", "PTAL": "2", "PTAL_level": "8.0", "Resident_band": "Band 3", "Resident_band_cost": "£246.03 – 361.54", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91", "KSI_band": "Band 5","Multiplevehicle_band": "Band 5" },
+    "Merton London Boro": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "18.0", "PTAL": "3", "PTAL_level": "9.5", "Resident_band": "Band 3", "Resident_band_cost": "£246.03 – 361.54", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57", "KSI_band": "Band 6","Multiplevehicle_band": "Band 2" },
+    "Kingston upon Thames London Boro": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "17.5", "PTAL": "2", "PTAL_level": "8.0", "Resident_band": "Band 3", "Resident_band_cost": "£246.03 – 361.54", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91", "KSI_band": "Band 6","Multiplevehicle_band": "Band 4" },
+    "Sutton London Boro": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "13.77723", "PTAL": "2", "PTAL_level": "6.270242", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 1", "Diesel_band_cost": "£12.75 – 53.79", "Business_band": "Band 1", "Business_band_cost": "£52.00 – 360.75", "Visitor_band": "Out of Range", "Visitor_band_cost": "n/a", "KSI_band": "Band 6","Multiplevehicle_band": "Band 1" },
+    "Hillingdon London Boro": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "17.46548", "PTAL": "1", "PTAL_level": "4.317269", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Out of Range", "Visitor_band_cost": "n/a", "KSI_band": "Band 6","Multiplevehicle_band": "Band 1" },
+    "Havering": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "16.39055", "PTAL": "1", "PTAL_level": "4.424283", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91", "KSI_band": "Band 5","Multiplevehicle_band": "Band 2" },
+    "Brent": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "25.09581", "PTAL": "3", "PTAL_level": "11.25365", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 1", "Visitor_band_cost": "£1.60 – 5.26", "KSI_band": "Band 4","Multiplevehicle_band": "Band 1" },
+    "City of Westminster": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "20.09178", "PTAL": "6", "PTAL_level": "31.95635", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Unknown", "Visitor_band_cost": "n/a", "KSI_band": "Band 1","Multiplevehicle_band": "Band 3" },
+    "Enfield": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "24.96411", "PTAL": "2", "PTAL_level": "6.283141", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57", "KSI_band": "Band 4","Multiplevehicle_band": "Band 1" },
+    "Haringey": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "26.9533", "PTAL": "3", "PTAL_level": "13.3692", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57", "KSI_band": "Band 5","Multiplevehicle_band": "Band 2" },
+    "Kensington and Chelsea London Boro": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "22.27008", "PTAL": "5", "PTAL_level": "22.62542", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Unknown", "Diesel_band_cost": "n/a", "Business_band": "Unknown", "Business_band_cost": "n/a", "Visitor_band": "Band 4", "Visitor_band_cost": "£12.57 – £16.23", "KSI_band": "Band 4","Multiplevehicle_band": "Band 4" },
+    "Ealing": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "22.51662", "PTAL": "2", "PTAL_level": "9.350459", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57", "KSI_band": "Band 3","Multiplevehicle_band": "Band 2" },
+    "Hounslow London Boro": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "21.2356", "PTAL": "2", "PTAL_level": "7.492888", "Resident_band": "Band 3", "Resident_band_cost": "£246.03 – 361.54", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57", "KSI_band": "Band 4","Multiplevehicle_band": "Band 3" },
+    "Redbridge": { "Inside_Outside": "Outer", "emission_based": "No", "IMD_Average_score": "21.0", "PTAL": "2", "PTAL_level": "8.0", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91", "KSI_band": "Band 6","Multiplevehicle_band": "Band 5" },
+    "Tower Hamlets": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "30.0", "PTAL": "6", "PTAL_level": "25.0", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 4", "Diesel_band_cost": "£135.86 – 176.90", "Business_band": "Band 4", "Business_band_cost": "£978.25 – 1287.00", "Visitor_band": "Band 4", "Visitor_band_cost": "£12.57 – 16.23", "KSI_band": "Band 3","Multiplevehicle_band": "Band 5" },
+    "Islington": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "27.0", "PTAL": "5", "PTAL_level": "20.0", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57", "KSI_band": "Band 5","Multiplevehicle_band": "Band 4" },
+    "Hackney": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "29.0", "PTAL": "4", "PTAL_level": "15.0", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57", "KSI_band": "Band 4","Multiplevehicle_band": "n/a" },
+    "Wandsworth London Boro": { "Inside_Outside": "Inner", "emission_based": "No", "IMD_Average_score": "16.50158", "PTAL": "3", "PTAL_level": "13.45488", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91", "KSI_band": "Band 3","Multiplevehicle_band": "Band 4" },
+    "Camden": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "25.2064", "PTAL": "5", "PTAL_level": "24.909408", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 4", "Diesel_band_cost": "£135.86 – 176.90", "Business_band": "Band 4", "Business_band_cost": "£978.25 – 1287.00", "Visitor_band": "Band 4", "Visitor_band_cost": "£12.57 – 16.23", "KSI_band": "Band 5","Multiplevehicle_band": "n/a" },
+    "Southwark": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "25.28469", "PTAL": "5", "PTAL_level": "22.12614", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57", "KSI_band": "Band 1","Multiplevehicle_band": "Band 2" },
+    "Greenwich": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "26.9533", "PTAL": "3", "PTAL_level": "6.36692", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91", "KSI_band": "Band 4","Multiplevehicle_band": "Band 4" },
+    "Newham": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "29.51243", "PTAL": "3", "PTAL_level": "14.58995", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 4", "Diesel_band_cost": "£135.86 – 176.90", "Business_band": "Band 4", "Business_band_cost": "£978.25 – £1287.00", "Visitor_band": "Band 4", "Visitor_band_cost": "£12.57 – 16.23", "KSI_band": "Band 5","Multiplevehicle_band": "Band 4" },
+    "Waltham Forest": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "25.00373", "PTAL": "3", "PTAL_level": "9.046299", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57", "KSI_band": "Band 6","Multiplevehicle_band": "Band 2" },
+    "Lewisham": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "26.54361", "PTAL": "3", "PTAL_level": "12.08809", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 3", "Diesel_band_cost": "£94.82 – 135.86", "Business_band": "Band 3", "Business_band_cost": "£669.50 – 978.25", "Visitor_band": "Band 3", "Visitor_band_cost": "£8.91 – 12.57", "KSI_band": "Band 4","Multiplevehicle_band": "n/a" },
+    "Croydon": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "21.78941", "PTAL": "2", "PTAL_level": "8.327508", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91", "KSI_band": "Band 3","Multiplevehicle_band": "Band 2" },
+    "Bromley": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "14.0", "PTAL": "2", "PTAL_level": "7.0", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91", "KSI_band": "Band 5","Multiplevehicle_band": "n/a" },
+    "Bexley": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "13.5", "PTAL": "1", "PTAL_level": "4.5", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 1", "Diesel_band_cost": "£12.75 – 53.79", "Business_band": "Band 1", "Business_band_cost": "£52.00 – 360.75", "Visitor_band": "Band 1", "Visitor_band_cost": "£1.60 – 5.26", "KSI_band": "Band 6","Multiplevehicle_band": "Band 1" },
+    "Barnet": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "18.0", "PTAL": "2", "PTAL_level": "7.5", "Resident_band": "Band 2", "Resident_band_cost": "£130.51 – 246.03", "Diesel_band": "Band 2", "Diesel_band_cost": "£53.79 – 94.82", "Business_band": "Band 2", "Business_band_cost": "£360.75 – 669.50", "Visitor_band": "Band 2", "Visitor_band_cost": "£5.26 – 8.91", "KSI_band": "Band 4","Multiplevehicle_band": "Band 1" },
+     "Barking and Dagenham": { "Inside_Outside": "Outer", "emission_based": "Yes", "IMD_Average_score": "20.0", "PTAL": "1", "PTAL_level": "5.0", "Resident_band": "Band 1", "Resident_band_cost": "£15.00 – 130.51", "Diesel_band": "Band 1", "Diesel_band_cost": "£12.75 – 53.79", "Business_band": "Band 1", "Business_band_cost": "£52.00 – 360.75", "Visitor_band": "Band 1", "Visitor_band_cost": "£1.60 – 5.26", "KSI_band": "Band 6","Multiplevehicle_band": "Band 1" },
+      "City of London": { "Inside_Outside": "Inner", "emission_based": "Yes", "IMD_Average_score": "30.0", "PTAL": "6", "PTAL_level": "32.0", "Resident_band": "Band 4", "Resident_band_cost": "£361.54 – 477.06", "Diesel_band": "Band 4", "Diesel_band_cost": "£135.86 – 176.90", "Business_band": "Band 4", "Business_band_cost": "£978.25 – 1287.00", "Visitor_band": "Band 4", "Visitor_band_cost": "£12.57 – 16.23", "KSI_band": "Band 6","Multiplevehicle_band": "n/a" }
     };
     
     const bandCostBreakdown = {
@@ -367,6 +373,22 @@
             'Band 5': '£16.23 – £19.88',
             'Band 6': '£19.88 – £23.54',
             'Band 7': '£23.54 – £27.20',
+        },
+      'KSI': {
+            'Band 1': '£51 – £81',
+            'Band 2': '£82 – £112',
+            'Band 3': '£113 – £143',
+            'Band 4': '£144 – £174',
+            'Band 5': '£175 – £205',
+            'Band 6': '£206 – £234',
+        },
+            'Multiple Vehicle': {
+            'Band 1': '£30',
+            'Band 2': '£82 – £112',
+            'Band 3': '£113 – £143',
+            'Band 4': '£144 – £174',
+            'Band 5': '£175 – £205',
+            'Band 6': '£206 – £234',
         }
     };
     const IMD_LEGEND_DATA = [
@@ -461,6 +483,8 @@
         'visitor-band-choropleth': getCategoricalColorExpression('Visitor_band', BAND_COLOR_PALETTE),
         'diesel-band-choropleth': getCategoricalColorExpression('Diesel_band', BAND_COLOR_PALETTE),
         'business-band-choropleth': getCategoricalColorExpression('Business_band', BAND_COLOR_PALETTE),
+      'ksi-band-choropleth': getCategoricalColorExpression('KSI_band', BAND_COLOR_PALETTE),
+      'multiplevehicle-band-choropleth': getCategoricalColorExpression('Multiplevehicle_band', BAND_COLOR_PALETTE)
     };
 
     // --- Map Initialization ---
@@ -957,5 +981,3 @@
 
 </body>
 </html>
-
-
